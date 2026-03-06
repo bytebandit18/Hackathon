@@ -50,11 +50,16 @@ export function useObjectDetection({
         }
     }, []);
 
-    const processFrame = useCallback(() => {
+    const processFrame = useCallback(async () => {
         if (!isNavigating || !videoRef.current || isProcessingRef.current) return;
 
         const video = videoRef.current;
-        if (video.readyState < 2 || video.videoWidth === 0) return;
+
+        // Wait for video to be ready — retry up to 10 times with 200ms gaps instead of silently bailing
+        if (video.readyState < 2 || video.videoWidth === 0) {
+            console.log('[SCAN] Video not ready yet (readyState:', video.readyState, ') — waiting...');
+            return;
+        }
 
         isProcessingRef.current = true;
         const now = Date.now();
@@ -361,8 +366,10 @@ export function useObjectDetection({
             return;
         }
 
-        // We use a shorter interval (e.g. 250ms or 500ms) but it will skip if isProcessing is true
-        const intervalId = setInterval(processFrame, invokeIntervalMs);
+        // Use a shorter interval (e.g. 250ms or 500ms) but it will skip if isProcessing is true
+        const intervalId = setInterval(() => {
+            processFrame();
+        }, invokeIntervalMs);
 
         return () => clearInterval(intervalId);
     }, [isNavigating, invokeIntervalMs, processFrame]);

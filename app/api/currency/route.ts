@@ -30,7 +30,7 @@ If you do not see any currency, or if it is too blurry to identify, respond ONLY
 `;
 
         const response = await retryWithBackoff(() => ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             contents: [
                 prompt,
                 {

@@ -30,7 +30,7 @@ If the image is completely blurry or you cannot distinguish anything, respond wi
 
         // Use retry/backoff for transient errors such as rate limits or quota issues
         const response = await retryWithBackoff(() => ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             contents: [
                 prompt,
                 {

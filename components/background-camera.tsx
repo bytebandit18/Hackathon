@@ -120,7 +120,7 @@ export const BackgroundCamera = forwardRef<BackgroundCameraHandle, BackgroundCam
         }
     }, [isNavigating, facingMode])
 
-    const { detectedObjects } = useObjectDetection({
+    const { detectedObjects, scanError } = useObjectDetection({
         isNavigating,
         videoRef,
         invokeIntervalMs: 150,
@@ -155,12 +155,12 @@ export const BackgroundCamera = forwardRef<BackgroundCameraHandle, BackgroundCam
                 const isHazard = hazards.includes(objClass)
                 const lastSpoken = lastSpokenRef.current[objClass] || 0
 
-                let cooldownMs = 12000;
+                let cooldownMs = 5000;
                 if (isHazard) {
                     if (objClass === 'wall') {
-                        cooldownMs = closestSteps < 5 ? 3000 : 10000;
+                        cooldownMs = closestSteps < 5 ? 2000 : 4000;
                     } else {
-                        cooldownMs = closestSteps < 15 ? 4000 : 8000;
+                        cooldownMs = closestSteps < 15 ? 2500 : 4000;
                     }
                 }
 
@@ -190,7 +190,9 @@ export const BackgroundCamera = forwardRef<BackgroundCameraHandle, BackgroundCam
             const ctx = canvas.getContext("2d");
             if (!ctx) return null;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL("image/jpeg", 0.9);
+            const base64 = canvas.toDataURL("image/jpeg", 0.9);
+            if (base64.length < 1000) return null;
+            return base64;
         }
     }));
 
@@ -251,14 +253,14 @@ export const BackgroundCamera = forwardRef<BackgroundCameraHandle, BackgroundCam
                     aria-hidden="true"
                 />
             )}
-            {showLiveView && detectedObjects.length === 0 && !cameraError && (
+            {showLiveView && detectedObjects.length === 0 && !cameraError && !scanError && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 pointer-events-none">
                     <p className="text-white bg-black/50 px-3 py-1 rounded-full text-sm">Scanning...</p>
                 </div>
             )}
-            {showLiveView && cameraError && (
+            {showLiveView && (cameraError || scanError) && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 pointer-events-none">
-                    <p className="text-white bg-red-600/80 px-4 py-2 rounded-full text-sm text-center">{cameraError}</p>
+                    <p className="text-white bg-red-600/80 px-4 py-2 rounded-full text-sm text-center">{cameraError || scanError}</p>
                 </div>
             )}
             {showLiveView && (

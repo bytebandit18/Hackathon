@@ -25,7 +25,7 @@ Valid responses: One Rupee Coin, Two Rupee Coin, Five Rupee Coin, Ten Rupee Coin
 If no currency is clearly visible, respond ONLY with: No currency detected.`;
 
         const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: [
                 { role: "user", parts: [{ text: prompt }, imagePart] }
             ]

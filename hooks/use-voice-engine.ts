@@ -34,16 +34,14 @@ export function useVoiceEngine({ onCommand, continuous = true }: VoiceEngineOpti
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         if (isSpeakingRef.current) return // Ignore input if TTS is currently active
 
-        let finalTranscript = ""
+        let currentTranscript = ""
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
-          if (result.isFinal) {
-            finalTranscript += result[0].transcript
-          }
+          currentTranscript += result[0].transcript
         }
-        if (finalTranscript) {
-          setTranscript(finalTranscript.trim().toLowerCase())
-          onCommand?.(finalTranscript.trim().toLowerCase())
+        if (currentTranscript) {
+          setTranscript(currentTranscript.trim().toLowerCase())
+          onCommand?.(currentTranscript.trim().toLowerCase())
         }
       }
 
@@ -101,6 +99,7 @@ export function useVoiceEngine({ onCommand, continuous = true }: VoiceEngineOpti
   }, [])
 
   const speak = useCallback((text: string, priority: "polite" | "assertive" = "polite") => {
+    isSpeakingRef.current = true // instantly block micropphone handling
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
 

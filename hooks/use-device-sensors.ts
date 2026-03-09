@@ -26,6 +26,7 @@ export function useDeviceSensors() {
   const stepThreshold = 1.2
   const stepsRef = useRef(0)
   const headingRef = useRef(0)
+  const lastStepTimeRef = useRef<number>(0)
 
   useEffect(() => {
     if (!isTracking) return
@@ -39,9 +40,12 @@ export function useDeviceSensors() {
 
       const magnitude = Math.sqrt(acc.x ** 2 + acc.y ** 2 + acc.z ** 2)
       const delta = Math.abs(magnitude - lastAccelRef.current)
+      const now = Date.now()
 
-      if (delta > stepThreshold) {
+      if (delta > stepThreshold && now - lastStepTimeRef.current > 500) {
         stepsRef.current += 1
+        lastStepTimeRef.current = now
+
         setSensorData((prev) => ({
           ...prev,
           steps: stepsRef.current,
@@ -53,11 +57,11 @@ export function useDeviceSensors() {
           {
             heading: headingRef.current,
             steps: stepsRef.current,
-            timestamp: Date.now(),
+            timestamp: now,
           },
         ])
-      } else {
-        setSensorData((prev) => ({ ...prev, isMoving: false }))
+      } else if (now - lastStepTimeRef.current > 500) {
+        setSensorData((prev) => prev.isMoving ? { ...prev, isMoving: false } : prev)
       }
 
       lastAccelRef.current = magnitude

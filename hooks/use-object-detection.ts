@@ -39,11 +39,12 @@ export function useObjectDetection({
     onDescribeScene,
 }: UseObjectDetectionProps) {
     const [detectedObjects, setDetectedObjects] = useState<DetectedObject[]>([]);
+    const [scanError, setScanError] = useState<string | null>(null);
 
     // Request gate — only one Gemini call in-flight at a time
     const isRequestInFlightRef = useRef(false);
     // How long to wait before next call (increases on rate limit)
-    const nextCallDelayMs = useRef(4000);
+    const nextCallDelayMs = useRef(1500);
     const lastCallTimeRef = useRef(0);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -76,7 +77,10 @@ export function useObjectDetection({
         if (!ctx) return null;
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL('image/jpeg', 0.7);
+        const base64 = canvas.toDataURL('image/jpeg', 0.7);
+        // Avoid sending empty/broken 1x1 black frames to the API
+        if (base64.length < 1000) return null;
+        return base64;
     }, [videoRef]);
 
     const runDetection = useCallback(async () => {
@@ -106,6 +110,7 @@ export function useObjectDetection({
             if (res.status === 429) {
                 console.warn('[SCAN] Rate limited — backing off 30s');
                 nextCallDelayMs.current = 30000;
+                setScanError("Rate limited. Pausing scan.");
                 setDetectedObjects([]);
                 return;
             }
@@ -113,15 +118,17 @@ export function useObjectDetection({
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
                 console.error('[SCAN] API error:', res.status, errData);
+                setScanError("Scanner offline (Server Error)");
                 nextCallDelayMs.current = 6000;
                 return;
             }
 
             const data = await res.json();
+            setScanError(null); // clear error on success
             console.log('[SCAN] Raw response:', String(data.result || '').substring(0, 120));
 
             // Reset delay on success
-            nextCallDelayMs.current = 4000;
+            nextCallDelayMs.current = 1500;
 
             const rawResult: string = data.result || '';
             if (!rawResult || rawResult.toLowerCase().includes('nothing clear')) {
@@ -213,6 +220,7 @@ export function useObjectDetection({
 
         } catch (err) {
             console.error('[SCAN] Fetch error:', String(err));
+            setScanError("Network error. Retrying...");
             nextCallDelayMs.current = 6000;
         } finally {
             isRequestInFlightRef.current = false;
@@ -223,7 +231,7 @@ export function useObjectDetection({
         if (!isNavigating) {
             setDetectedObjects([]);
             isRequestInFlightRef.current = false;
-            nextCallDelayMs.current = 4000;
+            nextCallDelayMs.current = 1500;
             lastCallTimeRef.current = 0;
             return;
         }
@@ -233,5 +241,5 @@ export function useObjectDetection({
         return () => clearInterval(id);
     }, [isNavigating, invokeIntervalMs, runDetection]);
 
-    return { detectedObjects };
+    return { detectedObjects, scanError };
 }

@@ -108,8 +108,8 @@ export function useObjectDetection({
             });
 
             if (res.status === 429) {
-                console.warn('[SCAN] Rate limited — backing off 30s');
-                nextCallDelayMs.current = 30000;
+                console.warn('[SCAN] Rate limited — backing off 10s');
+                nextCallDelayMs.current = 10000;
                 setScanError("Rate limited. Pausing scan.");
                 setDetectedObjects([]);
                 return;
